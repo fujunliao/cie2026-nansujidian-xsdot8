@@ -1,0 +1,170 @@
+{
+  "source": "actual full-chip FST",
+  "timestamp_unit": "guest cycle (default emu --dump-wave)",
+  "issues": [
+    {
+      "cycle": 16596,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    },
+    {
+      "cycle": 16669,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    },
+    {
+      "cycle": 16713,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    },
+    {
+      "cycle": 16771,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    },
+    {
+      "cycle": 16815,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    },
+    {
+      "cycle": 16873,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    },
+    {
+      "cycle": 16917,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    },
+    {
+      "cycle": 16977,
+      "a": "0xf0e0d0c0b0a09080706050403020100",
+      "b": "0x2020202020202020202020202020202"
+    }
+  ],
+  "writebacks": [
+    {
+      "cycle": 16598,
+      "result": "0x38",
+      "rob_index": 11
+    },
+    {
+      "cycle": 16671,
+      "result": "0x38",
+      "rob_index": 23
+    },
+    {
+      "cycle": 16715,
+      "result": "0x38",
+      "rob_index": 35
+    },
+    {
+      "cycle": 16773,
+      "result": "0x38",
+      "rob_index": 47
+    },
+    {
+      "cycle": 16817,
+      "result": "0x38",
+      "rob_index": 11
+    },
+    {
+      "cycle": 16875,
+      "result": "0x38",
+      "rob_index": 23
+    },
+    {
+      "cycle": 16919,
+      "result": "0x38",
+      "rob_index": 35
+    },
+    {
+      "cycle": 16979,
+      "result": "0x38",
+      "rob_index": 47
+    }
+  ],
+  "latencies_cycles": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "vadd_events": [
+    {
+      "unit": "TOP.SimTop.l_soc.core_with_l2.core.backend.inner_vfExuBlock.exus_2.VialuFix.",
+      "event": "issue",
+      "cycle": 12987,
+      "op": 64,
+      "a": "0x2020202020202020202020202020202",
+      "b": "0xf0e0d0c0b0a09080706050403020100"
+    },
+    {
+      "unit": "TOP.SimTop.l_soc.core_with_l2.core.backend.inner_vfExuBlock.exus_2.VialuFix.",
+      "event": "writeback",
+      "cycle": 12988,
+      "result": "0x11100f0e0d0c0b0a0908070605040302"
+    }
+  ],
+  "relevant_commits": [
+    {
+      "cycle": 12995,
+      "slot": 0,
+      "pc": "0x8000071e",
+      "instr": "0x2848557"
+    },
+    {
+      "cycle": 16600,
+      "slot": 0,
+      "pc": "0x80000362",
+      "instr": "0x220800b"
+    },
+    {
+      "cycle": 16677,
+      "slot": 0,
+      "pc": "0x80000380",
+      "instr": "0x231008b"
+    },
+    {
+      "cycle": 16722,
+      "slot": 0,
+      "pc": "0x8000039e",
+      "instr": "0x241810b"
+    },
+    {
+      "cycle": 16779,
+      "slot": 0,
+      "pc": "0x800003bc",
+      "instr": "0x252018b"
+    },
+    {
+      "cycle": 16824,
+      "slot": 0,
+      "pc": "0x800003da",
+      "instr": "0x262820b"
+    },
+    {
+      "cycle": 16881,
+      "slot": 0,
+      "pc": "0x800003f8",
+      "instr": "0x273028b"
+    },
+    {
+      "cycle": 16921,
+      "slot": 0,
+      "pc": "0x80000416",
+      "instr": "0x283830b"
+    },
+    {
+      "cycle": 16981,
+      "slot": 0,
+      "pc": "0x80000434",
+      "instr": "0x294038b"
+    }
+  ]
+}

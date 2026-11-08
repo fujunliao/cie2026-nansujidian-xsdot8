@@ -1,0 +1,3 @@
+# Optional Python-distributed Yosys fallback; measured release runs used native Yosys 0.9.
+# Native Ubuntu yosys does not require pip installation. To use this fallback, set YOSYS=yowasp-yosys.
+yowasp-yosys==0.69.0.0.post1233

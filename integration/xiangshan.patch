@@ -1,0 +1,216 @@
+diff --git a/src/main/resources/xsdot8/VDotPipe.sv b/src/main/resources/xsdot8/VDotPipe.sv
+new file mode 100644
+index 000000000..5bc26b597
+--- /dev/null
++++ b/src/main/resources/xsdot8/VDotPipe.sv
+@@ -0,0 +1,68 @@
++// SPDX-License-Identifier: MIT
++// XSDot8: eight signed byte products, exact 19-bit reduction, 32-bit result.
++// Low 64 source bits participate. Output placement is a project interpretation.
++module VDotProducts #(parameter ISOLATE = 1)(
++  input [127:0] a, b, input active, output [127:0] products
++);
++  genvar i;
++  generate for (i=0; i<8; i=i+1) begin: lane
++    wire signed [7:0] x = (!ISOLATE || active) ? a[8*i +: 8] : 8'sd0;
++    wire signed [7:0] y = (!ISOLATE || active) ? b[8*i +: 8] : 8'sd0;
++    wire signed [15:0] product = x * y;
++    assign products[16*i +: 16] = product;
++  end endgenerate
++endmodule
++
++module VDotReduce(input [127:0] products, output [127:0] result);
++  wire signed [15:0] p [0:7];
++  wire signed [16:0] s [0:3];
++  wire signed [17:0] t [0:1];
++  wire signed [18:0] sum;
++  genvar i;
++  generate for(i=0;i<8;i=i+1) begin: unpack
++    assign p[i] = products[16*i +: 16];
++  end
++  for(i=0;i<4;i=i+1) begin: level1
++    assign s[i] = $signed({p[2*i][15],p[2*i]}) + $signed({p[2*i+1][15],p[2*i+1]});
++  end
++  for(i=0;i<2;i=i+1) begin: level2
++    assign t[i] = $signed({s[2*i][16],s[2*i]}) + $signed({s[2*i+1][16],s[2*i+1]});
++  end endgenerate
++  assign sum = $signed({t[0][17],t[0]}) + $signed({t[1][17],t[1]});
++  assign result = {96'b0, {13{sum[18]}}, sum};
++endmodule
++
++module VDotCore #(parameter ISOLATE = 1)(
++  input [127:0] a,b, input active, output [127:0] result
++);
++  wire [127:0] products;
++  VDotProducts #(.ISOLATE(ISOLATE)) mul(a,b,active,products);
++  VDotReduce reduce(products,result);
++endmodule
++
++// Datapath only. Parent XiangShan FU owns valid, ROB tags, flush and writeback.
++// en1 captures products; en2 captures their reduction one cycle later.
++module VDotPipe(input clock, input en1,en2,
++  input [127:0] a,b, output reg [127:0] result);
++  wire [127:0] products, reduced;
++  reg [127:0] products_q;
++  VDotProducts mul(a,b,en1,products);
++  VDotReduce reduce(products_q,reduced);
++  always @(posedge clock) begin
++    if(en1) products_q <= products;
++    if(en2) result <= reduced;
++  end
++endmodule
++
++// Area/logic-depth ablation: intentionally serial 32-bit accumulation.
++module VDotSerial(input [127:0] a,b, output [127:0] result);
++  wire signed [31:0] sums [0:8];
++  assign sums[0]=0;
++  genvar i;
++  generate for(i=0;i<8;i=i+1) begin: lane
++    wire signed [7:0] x=a[i*8 +: 8], y=b[i*8 +: 8];
++    wire signed [15:0] product=x*y;
++    assign sums[i+1] = sums[i] + {{16{product[15]}},product};
++  end endgenerate
++  assign result={96'b0,sums[8]};
++endmodule
+diff --git a/src/main/scala/top/Configs.scala b/src/main/scala/top/Configs.scala
+index 125bbfe28..1b8147bed 100644
+--- a/src/main/scala/top/Configs.scala
++++ b/src/main/scala/top/Configs.scala
+@@ -232,6 +232,9 @@ class MinimalConfig(n: Int = 1) extends Config(
+         )),
+         OpenLLCParamsOpt = Option.when(up(EnableCHI))(OpenLLCParam(
+           name = "LLC",
++          // Match the SoC address width; OpenLLC's 16-bit default cannot hold
++          // the 11 set + 2 bank + 6 offset bits of this V2 Minimal cache.
++          fullAddressBits = up(SoCParamsKey).PAddrBits,
+           ways = 8,
+           sets = 2048,
+           banks = 4,
+diff --git a/src/main/scala/xiangshan/backend/decode/VecDecoder.scala b/src/main/scala/xiangshan/backend/decode/VecDecoder.scala
+index 376419107..a60745235 100644
+--- a/src/main/scala/xiangshan/backend/decode/VecDecoder.scala
++++ b/src/main/scala/xiangshan/backend/decode/VecDecoder.scala
+@@ -186,6 +186,7 @@ case class VST(src2: BitPat, fuOp: BitPat, strided: Boolean = false, indexed: Bo
+ 
+ object VecDecoder extends DecodeConstants {
+   val opivv: Array[(BitPat, XSDecodeBase)] = Array(
++    XSDot8.instruction -> OPIVV(FuType.vipu, BitPat(XSDot8.fuOp), T, F, F, UopSplitType.VEC_VVV, src3 = SrcType.no),
+     VADD_VV         -> OPIVV(FuType.vialuF, VialuFixType.vadd_vv, T, F, F),
+     VSUB_VV         -> OPIVV(FuType.vialuF, VialuFixType.vsub_vv, T, F, F),
+ 
+diff --git a/src/main/scala/xiangshan/backend/decode/VecExceptionGen.scala b/src/main/scala/xiangshan/backend/decode/VecExceptionGen.scala
+index b885c6876..f5a5c26d2 100644
+--- a/src/main/scala/xiangshan/backend/decode/VecExceptionGen.scala
++++ b/src/main/scala/xiangshan/backend/decode/VecExceptionGen.scala
+@@ -291,7 +291,10 @@ class VecExceptionGen(implicit p: Parameters) extends XSModule{
+ 
+   private val regOverlapIllegal = v0Overlap || vs1vdOverlap || vs2vdOverlap
+ 
+-  io.illegalInst := instIllegal || villIllegal || eewIllegal || emulIllegal || regNumIllegal || regOverlapIllegal || vstartIllegal
++  // Deliberately restricted project profile; official page does not define LMUL/mask.
++  private val dotIllegal = (XSDot8.instruction === inst.ALL) &&
++    (io.vtype.vsew =/= 0.U || io.vtype.vlmul =/= 0.U)
++  io.illegalInst := instIllegal || villIllegal || eewIllegal || emulIllegal || regNumIllegal || regOverlapIllegal || vstartIllegal || dotIllegal
+   dontTouch(instIllegal)
+   dontTouch(villIllegal)
+   dontTouch(eewIllegal)
+diff --git a/src/main/scala/xiangshan/backend/decode/XSDot8.scala b/src/main/scala/xiangshan/backend/decode/XSDot8.scala
+new file mode 100644
+index 000000000..78e37b14e
+--- /dev/null
++++ b/src/main/scala/xiangshan/backend/decode/XSDot8.scala
+@@ -0,0 +1,9 @@
++// SPDX-License-Identifier: MIT
++package xiangshan.backend.decode
++import chisel3._
++import chisel3.util._
++object XSDot8 {
++  // Reserved custom-0 major opcode. Vector register indices retain OP-V positions.
++  val instruction = BitPat("b0000001??????????000?????0001011")
++  def fuOp = "hfe".U(xiangshan.FuOpTypeWidth.W) // unused in pinned VipuType; ff is dummy
++}
+diff --git a/src/main/scala/xiangshan/backend/decode/isa/bitfield/RiscvInst.scala b/src/main/scala/xiangshan/backend/decode/isa/bitfield/RiscvInst.scala
+index c553020a4..4aac9e132 100644
+--- a/src/main/scala/xiangshan/backend/decode/isa/bitfield/RiscvInst.scala
++++ b/src/main/scala/xiangshan/backend/decode/isa/bitfield/RiscvInst.scala
+@@ -91,7 +91,8 @@ trait BitFieldsVec { this: Riscv32BitInst =>
+   }
+ 
+   def isVecArith = {
+-    this.OPCODE5Bit === xiangshan.backend.decode.isa.bitfield.OPCODE5Bit.OP_V
++    this.OPCODE5Bit === xiangshan.backend.decode.isa.bitfield.OPCODE5Bit.OP_V ||
++      (xiangshan.backend.decode.XSDot8.instruction === this.ALL)
+   }
+ 
+   def isOPIVV = {
+diff --git a/src/main/scala/xiangshan/backend/fu/wrapper/VDotBlackBox.scala b/src/main/scala/xiangshan/backend/fu/wrapper/VDotBlackBox.scala
+new file mode 100644
+index 000000000..ad5432870
+--- /dev/null
++++ b/src/main/scala/xiangshan/backend/fu/wrapper/VDotBlackBox.scala
+@@ -0,0 +1,15 @@
++// SPDX-License-Identifier: MIT
++package xiangshan.backend.fu.wrapper
++import chisel3._
++import chisel3.util.HasBlackBoxResource
++class VDotPipe extends BlackBox with HasBlackBoxResource {
++  val io = IO(new Bundle {
++    val clock = Input(Clock())
++    val en1 = Input(Bool())
++    val en2 = Input(Bool())
++    val a = Input(UInt(128.W))
++    val b = Input(UInt(128.W))
++    val result = Output(UInt(128.W))
++  })
++  addResource("/xsdot8/VDotPipe.sv")
++}
+diff --git a/src/main/scala/xiangshan/backend/fu/wrapper/VIPU.scala b/src/main/scala/xiangshan/backend/fu/wrapper/VIPU.scala
+index 01346b645..417e6f71e 100644
+--- a/src/main/scala/xiangshan/backend/fu/wrapper/VIPU.scala
++++ b/src/main/scala/xiangshan/backend/fu/wrapper/VIPU.scala
+@@ -32,6 +32,8 @@ import xiangshan.backend.fu.vector.{Mgu, Utils, VecPipedFuncUnit, VecSrcTypeModu
+ import xiangshan.SrcType
+ import yunsuan.vector.alu.{VAluOpcode, VIAlu}
+ import yunsuan.{OpType, VipuType}
++import xiangshan.backend.decode.XSDot8
++import xiangshan.ExceptionNO
+ 
+ class VIAluDecodeResultBundle extends Bundle {
+   val opcode = UInt(6.W)
+@@ -125,7 +127,7 @@ class VIPU(cfg: FuConfig)(implicit p: Parameters) extends VecPipedFuncUnit(cfg)
+    */
+   vialu.io match {
+     case subIO =>
+-      subIO.in.valid            := io.in.valid
++      subIO.in.valid            := io.in.valid && fuOpType =/= XSDot8.fuOp
+       subIO.in.bits.opcode.op   := decoder.io.out.opcode
+       subIO.in.bits.info.vm     := vm
+       subIO.in.bits.info.ma     := vma
+@@ -146,5 +148,26 @@ class VIPU(cfg: FuConfig)(implicit p: Parameters) extends VecPipedFuncUnit(cfg)
+       subIO.in.bits.mask        := srcMask
+   }
+ 
+-  io.out.bits.res.data := vialu.io.out.bits.vd
++  // Reuse existing VIPU issue/VRF/ROB/writeback path and its 2-cycle reservation.
++  require(cfg.destDataBits == 128 && latency == 2)
++  private val dot = Module(new VDotPipe)
++  private val dotIn = fuOpType === XSDot8.fuOp
++  private val dotOut = outCtrl.fuOpType === XSDot8.fuOp
++  dot.io.clock := clock
++  dot.io.a := vs1
++  dot.io.b := vs2
++  dot.io.en1 := regEnable(1) && dotIn
++  dot.io.en2 := regEnable(2) && ctrlVec(1).fuOpType === XSDot8.fuOp
++  val xsdot8_issue = WireInit(io.in.valid && dotIn)
++  val xsdot8_writeback = WireInit(io.out.valid && dotOut)
++  dontTouch(xsdot8_issue)
++  dontTouch(xsdot8_writeback)
++  dontTouch(dot.io)
++  // Do not use the standard tail/mask merge for this custom full-register result.
++  io.out.bits.res.data := Mux(dotOut, dot.io.result, vialu.io.out.bits.vd)
++  when (dotOut) {
++    io.out.bits.ctrl.exceptionVec.get(ExceptionNO.illegalInstr) :=
++      outVecCtrl.vill || outVecCtrl.vsew =/= 0.U || outVecCtrl.vlmul =/= 0.U ||
++      !outVm || outVstart =/= 0.U || outVl =/= 8.U
++  }
+ }

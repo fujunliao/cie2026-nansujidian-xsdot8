@@ -1,0 +1,6 @@
+NAME = regression$(MODE)
+SRCS = regression.c reference.c kernels.S regression_asm.S
+DST_DIR = $(CURDIR)/build/mode$(MODE)/
+CFLAGS += -O2 -fno-tree-vectorize -march=rv64gcv -mabi=lp64d
+CPPFLAGS += -DTEST_MODE=$(MODE)
+include $(AM_HOME)/Makefile.app

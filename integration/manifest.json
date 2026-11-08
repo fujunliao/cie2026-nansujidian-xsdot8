@@ -1,0 +1,66 @@
+{
+  "xiangshan": [
+    {
+      "path": "src/main/scala/xiangshan/backend/fu/wrapper/VDotBlackBox.scala",
+      "before_sha256": null,
+      "after_sha256": "525111f58d38f0d5aed667693ad5a3a7dcf1eb273e89688365f31c5076210e64"
+    },
+    {
+      "path": "src/main/resources/xsdot8/VDotPipe.sv",
+      "before_sha256": null,
+      "after_sha256": "036f5ebd5c8d1069b35a8094988d57beb656dc6cbb6079635f027f06d0cf7371"
+    },
+    {
+      "path": "src/main/scala/xiangshan/backend/decode/XSDot8.scala",
+      "before_sha256": null,
+      "after_sha256": "0793c9465b3392b87b3569f6238c9da5c50d3a17b2312d66556eabcea9d7aad1"
+    },
+    {
+      "path": "src/main/scala/xiangshan/backend/decode/VecDecoder.scala",
+      "before_sha256": "3eec0be04f5e3a375e57fea33b101a43d46184bcefbfec163b7942efdabf9aa6",
+      "after_sha256": "1f7acc0614c9c47963f085357b5f10f0a5c91f9c418dd4344bd5b2d9c5698f58"
+    },
+    {
+      "path": "src/main/scala/xiangshan/backend/decode/isa/bitfield/RiscvInst.scala",
+      "before_sha256": "08b4953c6664c7d08965e00b13aca4f5601f221a57ffec0f5047c387053595f7",
+      "after_sha256": "0a83d2c8b8280e480bc5d87997b27597914b74ef4618cf7daccf2704a61c7b31"
+    },
+    {
+      "path": "src/main/scala/xiangshan/backend/decode/VecExceptionGen.scala",
+      "before_sha256": "5c96d2c144c675dd1b64926721ce4ea00650f6d1a74ed098b1e393e0d5f02f8d",
+      "after_sha256": "36a02bc26643363483acf4f4731faf84332a237545fc0033be516eb32b8fa5cf"
+    },
+    {
+      "path": "src/main/scala/xiangshan/backend/fu/wrapper/VIPU.scala",
+      "before_sha256": "7be0774fcd10cc36d4c8d5029b0c912d9eef5a605c94196be51c7f20c5143862",
+      "after_sha256": "ba01d924ef4db7796f54c311c0ff03f780a4f7c48463064d90bcad76c7bc97ed"
+    },
+    {
+      "path": "src/main/scala/top/Configs.scala",
+      "before_sha256": "febd1212adf7b3c7069f378c0f54373e40ade36ee902e0d1cf63503c300d6fd2",
+      "after_sha256": "7ffbc3c12bb534a6f88bcb9cd070181fccef98950fa512a5b450c34fadf6550a"
+    }
+  ],
+  "nemu": [
+    {
+      "path": "src/isa/riscv64/instr/decode.c",
+      "before_sha256": "8120da74ffdc526bfca09d10cbf787175081550ba79f747da665071087d10d7b",
+      "after_sha256": "b7050153978506afc83f40c6b13c6c6605ff6087f850d48e06378b6c63040ae5"
+    },
+    {
+      "path": "src/isa/riscv64/include/isa-all-instr.h",
+      "before_sha256": "79eee78546650f1b033b9b4d51e98705ab6bdb55fbce416130b211d95a88954b",
+      "after_sha256": "23411a9016efc6d3797d00e18106f91a67c8833af9b978768e91d27fe532bad6"
+    },
+    {
+      "path": "src/isa/riscv64/instr/rvv/vcompute.h",
+      "before_sha256": "b1e4fb72df5f99fc6df1cd2f54c022468b2736d55297ff97b1319dfb1463ce41",
+      "after_sha256": "cd18195d373a708472435af62527badd3e595001382680c6762b9982d6276aba"
+    },
+    {
+      "path": "configs/xsdot8-test_defconfig",
+      "before_sha256": null,
+      "after_sha256": "f242f1e856ef8d4dceb8522629d5cd536cf5a5f0e3e0dcca35cab83582940e60"
+    }
+  ]
+}
